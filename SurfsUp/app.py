@@ -11,14 +11,16 @@ import datetime as dt
 #################################################
 # Database Setup
 #################################################
+
+#database_path = '/Users/caleb/OneDrive/Documents/Desktop/Bootcamp/Coursework/sqlalchemy-challenge/SurfsUp/Resources/hawaii.sqlite'
 engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 
 # reflect an existing database into a new model
 Base = automap_base()
 
 # reflect the tables
-Base.prepare(autoload_with = engine)
-
+Base.prepare(engine = engine, reflect=True)
+print(Base.classes.keys())
 # Save references to each table
 measurement = Base.classes.measurement
 station = Base.classes.station
@@ -52,8 +54,7 @@ def homepage():
 # Precipitation:
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    # find most recent date and date for one year prior
-    most_recent_date = session.query(func.max(measurement.date))
+    most_recent_date = session.query(func.max(measurement.date)).all()[0][0]
     one_year_prior = dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=365)
     # query for date and prcp data
     results = session.query(measurement.date, measurement.prcp).\
@@ -69,11 +70,11 @@ def precipitation():
 @app.route("/api/v1.0/stations")
 def stations():
     # query the list of all stations
-    results = session.query(station.station).all*()
+    results = session.query(station.station).all()
     # return jsonified list of all stations
     station_list = []
-    for station, in results:
-        station_list.append(station)
+    for stations, in results:
+        station_list.append(stations)
     
     return jsonify(station_list)
 
@@ -83,10 +84,12 @@ def tobs():
     # find most active station 
     most_active_station = session.query(measurement.station).\
         group_by(measurement.station).\
-        order_by(func.count(measurement.station).desc()).first()
+        order_by(func.count(measurement.station).desc()).first()[0]
+    print(most_active_station)
     #grab past year's data for this station
     most_active_last_date = session.query(func.max(measurement.date)).\
-        filter(measurement.station == most_active_station)
+        filter(measurement.station == most_active_station).all()[0][0]
+    print(most_active_last_date)
     one_year_most_active = dt.datetime.strptime(most_active_last_date, '%Y-%m-%d') - dt.timedelta(days=365)
     #query the temp observations for this station
     results = session.query(measurement.date, measurement.tobs).\
